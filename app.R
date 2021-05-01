@@ -295,7 +295,7 @@ server <- function(input, output) {
                      labs(x = '', y='') +
                      coord_flip() +
                      theme_plotly +
-                     ggtitle("How do 2020 filings compare to filings in 2019"),
+                     ggtitle("How do 2020 filings compare to filings in 2019?"),
                  tooltip = c('text')
         )
     })
