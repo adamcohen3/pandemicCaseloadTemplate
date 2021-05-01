@@ -160,7 +160,7 @@ valueBox3 <- function(value, subtitle, icon, color) {
 # SHINY----
 #-----------------------------------#
 
-# Define UI for application that draws a histogram----
+# Define UI for application----
 ui <- fluidPage(
 
     # Application title
@@ -207,7 +207,7 @@ ui <- fluidPage(
     )
 )
 
-# Define server logic required to draw a histogram----
+# Define server logic----
 server <- function(input, output) {
 
     output$overAllText <- renderText({ 
