@@ -170,6 +170,13 @@ server <- function(input, output) {
         
     })
     
+    #props: https://stackoverflow.com/questions/59611914/reverse-the-legend-order-when-using-ggplotly
+    reverse_legend_labels <- function(plotly_plot) {
+        n_labels <- length(plotly_plot$x$data)
+        plotly_plot$x$data[1:n_labels] <- plotly_plot$x$data[n_labels:1]
+        plotly_plot
+    }
+    
     #caseLoads2020Plot----
     
     caseLoad2020 <- reactive({
@@ -202,7 +209,7 @@ server <- function(input, output) {
                                                                        'Difference between Filings and Dispositions: ', countTotal[action=='Filings'] - countTotal[action=='Dispositions']))) +
             #geom_col() +
             geom_bar(stat="identity",position = "identity", alpha=.6) +
-            scale_fill_manual("",labels =  c("Dispositions","Filings"), values = c("black","blue")) +
+            scale_fill_manual("",labels =  c("Dispositions","Filings"), values = c("tomato3","blue")) +
             #option #1 - set aes(x = monthNumRev...)
             scale_x_discrete(labels = rev(c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"))) +
             #option #2 - set aes(x = monthNum...)
@@ -226,7 +233,8 @@ server <- function(input, output) {
         
         ggplotly(ggplotCaseloads2020,
                  tooltip = c('text')
-        ) #%>%
+        ) %>%
+            reverse_legend_labels()
         # rangeslider(start = 0, end = 60000, thickness = .1)
         
         
@@ -240,13 +248,6 @@ server <- function(input, output) {
             mutate(date = as.Date(paste0(Year,'-',Month,'-01'),format = '%Y-%B-%d'),
                    monthNum = match(as.character(Month),month.name),
                    monthNumRev = as.factor(-1*((as.numeric(match(as.character(Month),month.name)))-13)))
-        
-        #props: https://stackoverflow.com/questions/59611914/reverse-the-legend-order-when-using-ggplotly
-        reverse_legend_labels <- function(plotly_plot) {
-            n_labels <- length(plotly_plot$x$data)
-            plotly_plot$x$data[1:n_labels] <- plotly_plot$x$data[n_labels:1]
-            plotly_plot
-        }
         
         ggplotFilings20192020 <- ggplot(filingsDF,aes(x=monthNumRev, y=Filings, fill = factor(Year, levels = c(2019,2020)), width = if_else(Year==2020,0.6,0.3),
                                                       text = paste0(Month,' | ', '2020 Filings: ', Filings[Year == 2020], '\n',
@@ -276,8 +277,8 @@ server <- function(input, output) {
         
         ggplotly(ggplotFilings20192020,
                  tooltip = c('text')
-        )# %>%
-        # reverse_legend_labels()
+        ) %>%
+            reverse_legend_labels()
         
     })
     
@@ -300,21 +301,14 @@ server <- function(input, output) {
         filingsDF <- filingsDF %>%
             filter(Year == 2020) %>%
             bind_rows(tmp)
-        
-        #props: https://stackoverflow.com/questions/59611914/reverse-the-legend-order-when-using-ggplotly
-        reverse_legend_labels <- function(plotly_plot) {
-            n_labels <- length(plotly_plot$x$data)
-            plotly_plot$x$data[1:n_labels] <- plotly_plot$x$data[n_labels:1]
-            plotly_plot
-        }
-        
+
         ggplotFilings20202021 <- ggplot(filingsDF,aes(x=monthNumRev, y=Filings, fill = factor(Year, levels = rev(c(2020,2021))), width = if_else(Year==2020,0.6,0.3),
                                                       text = paste0(Month,' | ', '2021 Filings: ', Filings[Year == 2021], '\n',
                                                                     Month,' | ', '2020 Filings: ', Filings[Year == 2020], '\n',
                                                                     'Change 2020 to 2021: ', Filings[Year == 2021] - Filings[Year == 2020]))) +
             geom_col(alpha = .6, position = "identity") +
             # geom_bar(stat="identity",position = position_dodge2(), alpha=.6) +
-            scale_fill_manual("Year",labels =  c("2020","2021"), breaks = c(2020,2021), values = c("blue",'yellow')) +
+            scale_fill_manual("Year",labels =  c("2020","2021"), breaks = c(2020,2021), values = c("blue",'goldenrod1')) +
             scale_x_discrete(labels = rev(c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"))) +
             # scale_y_continuous(labels = scales::unit_format(unit = "K", scale = 10e-4)) +
             # scale_y_continuous(labels = scales::unit_format(unit = "K", scale = 10e-4), limits = c(0,60000)) +
@@ -367,16 +361,24 @@ server <- function(input, output) {
         #     theme_ac1 +
         #     ggtitle("How does the accumulation of active pending cases in 2020 compare to 2019?")
         
-        ggplotly(ggplot(accumDF2,aes(x=lubridate::month(date, label = TRUE, abbr = TRUE), y=accumFilings, color = as.factor(Year), 
-                                     group = as.factor(Year), text = paste0('At the end of ',Month,' ',Year,',',format(accumFilings, big.mark = ','),' more cases were pending than on January 1, ',Year,'. \n',
-                                                                            'During the month of ',Month,',',format(Filings-Dispositions, big.mark = ','),' cases were added to the active pending caseload.'))) +
-                     geom_line() + geom_point() + geom_hline(yintercept = 0, linetype = 'dashed') +
-                     #scale_x_date(date_breaks = '1 month', date_labels = '%B', expand = c(0,0)) +
-                     scale_y_continuous(labels = scales::unit_format(unit = "K", scale = 10e-4)) +
-                     scale_color_manual(breaks = c(2019,2020,2021), values = c('gray40','blue','yellow')) +
-                     labs(x = '', y='', color = "Year") +
-                     theme_bw() +
-                     ggtitle("How does the accumulation of active pending cases in 2020 compare to 2019 and 2021?"),
+        ggplotAccumPending <- ggplot(accumDF2,aes(x=lubridate::month(date, label = TRUE, abbr = TRUE), y=accumFilings, color = as.factor(Year), 
+                                                  group = as.factor(Year), text = paste0('At the end of ',Month,' ',Year,',',format(accumFilings, big.mark = ','),' more cases were pending than on January 1, ',Year,'. \n',
+                                                                                         'During the month of ',Month,',',format(Filings-Dispositions, big.mark = ','),' cases were added to the active pending caseload.'))) +
+            geom_line() + geom_point() + geom_hline(yintercept = 0, linetype = 'dashed') +
+            #scale_x_date(date_breaks = '1 month', date_labels = '%B', expand = c(0,0)) +
+            scale_y_continuous(labels = scales::unit_format(unit = "K", scale = 10e-4)) +
+            scale_color_manual(breaks = c(2019,2020,2021), values = c('gray40','blue','goldenrod1')) +
+            labs(x = '', y='', color = "Year") +
+            theme_bw() +
+            ggtitle("How does the accumulation of active pending cases in 2020 compare to 2019 and 2021?")
+        
+        #set scale_y_continuous scaling unit based on max/min values of accumDF2 accumFilings
+        if (max(accumDF2$accumFilings > 1000) | min(accumDF2$accumFilings < -1000)){
+            ggplotAccumPending <- ggplotAccumPending +
+                scale_y_continuous(labels = scales::unit_format(unit = "K", scale = 10e-4))
+        }
+        
+        ggplotly(ggplotAccumPending,
                  tooltip = c('text'))
         
     })
