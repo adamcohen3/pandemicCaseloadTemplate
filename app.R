@@ -219,6 +219,8 @@ server <- function(input, output) {
             theme_plotly +
             ggtitle("How are [STATE] courts managing 2020 caseloads?")
         
+        #set scale_y_continuous scaling unit based on max value of caseLoad countTotal
+        #set scale_y_continuous so limits for caseLoads[YEAR]Plot and Filings[YEAR]Plots match, round to nearest 1K or 100 and add 1K or 100 so no data gets cutoff
         if (max(caseLoad2020()$countTotal > 1000)){
             ggplotCaseloads2020 <- ggplotCaseloads2020 +
                 scale_y_continuous(labels = scales::unit_format(unit = "K", scale = 10e-4), limits = c(0,round(max(caseLoad2020()$countTotal+1000),-3))) 
