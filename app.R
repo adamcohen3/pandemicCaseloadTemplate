@@ -207,16 +207,12 @@ server <- function(input, output) {
                                                          text = paste0(Month,' | ', 'Filings: ', countTotal[action == 'Filings'], '\n',
                                                                        Month,' | ', 'Dispositions: ', countTotal[action == 'Dispositions'], '\n',
                                                                        'Difference between Filings and Dispositions: ', countTotal[action=='Filings'] - countTotal[action=='Dispositions']))) +
-            #geom_col() +
             geom_bar(stat="identity",position = "identity", alpha=.6) +
             scale_fill_manual("",labels =  c("Dispositions","Filings"), values = c("tomato3","blue")) +
             #option #1 - set aes(x = monthNumRev...)
             scale_x_discrete(labels = rev(c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"))) +
             #option #2 - set aes(x = monthNum...)
             #scale_x_reverse(breaks = 1:12, labels = c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")) +
-            # scale_y_continuous(labels = scales::unit_format(unit = "K", scale = 10e-4)) +
-            # scale_y_continuous(labels = scales::unit_format(unit = "K", scale = 10e-4), limits = c(0,60000)) +
-            # scale_y_continuous(labels = seq(0,max(caseLoad2020$countTotal),length.out = 6)) +
             labs(x = '', y='') +
             coord_flip() +
             theme_bw() +
@@ -254,20 +250,17 @@ server <- function(input, output) {
                                                                     Month,' | ', '2019 Filings: ', Filings[Year == 2019], '\n',
                                                                     'Change 2019 to 2020: ', Filings[Year == 2020] - Filings[Year == 2019]))) +
             geom_col(alpha = .6, position = "identity") +
-            # scale_fill_manual("Year",labels =  c("2019","2020"), values = c("gray50","blue")) +
-            # geom_bar(stat="identity",position = position_dodge2(), alpha=.6) +
             scale_fill_manual("Year",labels =  c("2019","2020"), breaks = c(2019,2020), values = c("gray40","blue")) +
             scale_x_discrete(labels = rev(c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"))) +
-            # scale_y_continuous(labels = scales::unit_format(unit = "K", scale = 10e-4)) +
-            # scale_y_continuous(labels = scales::unit_format(unit = "K", scale = 10e-4), limits = c(0,60000)) +
             labs(x = '', y='') +
             coord_flip() +
             theme_plotly +
             ggtitle("How do 2020 filings compare to filings in 2019?")
         
+        #set scale_y_continuous scaling unit based on max value of caseLoad countTotal
+        #set scale_y_continuous so limits for caseLoads[YEAR]Plot and Filings[YEAR]Plots match, round to nearest 1K or 100 and add 1K or 100 so no data gets cutoff
         if (max(caseLoad2020()$countTotal > 1000)){
             ggplotFilings20192020 <- ggplotFilings20192020 +
-                # scale_y_continuous(labels = scales::unit_format(unit = "K", scale = 10e-4)) 
                 scale_y_continuous(labels = scales::unit_format(unit = "K", scale = 10e-4), limits = c(0,round(max(caseLoad2020()$countTotal+1000),-3))) 
         } else if (max(caseLoad2020()$countTotal < 1000)) {
             ggplotFilings20192020 <- ggplotFilings20192020 +
@@ -307,16 +300,15 @@ server <- function(input, output) {
                                                                     Month,' | ', '2020 Filings: ', Filings[Year == 2020], '\n',
                                                                     'Change 2020 to 2021: ', Filings[Year == 2021] - Filings[Year == 2020]))) +
             geom_col(alpha = .6, position = "identity") +
-            # geom_bar(stat="identity",position = position_dodge2(), alpha=.6) +
             scale_fill_manual("Year",labels =  c("2020","2021"), breaks = c(2020,2021), values = c("blue",'goldenrod1')) +
             scale_x_discrete(labels = rev(c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"))) +
-            # scale_y_continuous(labels = scales::unit_format(unit = "K", scale = 10e-4)) +
-            # scale_y_continuous(labels = scales::unit_format(unit = "K", scale = 10e-4), limits = c(0,60000)) +
             labs(x = '', y='') +
             coord_flip() +
             theme_plotly +
             ggtitle("How do 2020 filings compare to filings in 2021")
         
+        #set scale_y_continuous scaling unit based on max value of caseLoad countTotal
+        #set scale_y_continuous so limits for caseLoads[YEAR]Plot and Filings[YEAR]Plots match, round to nearest 1K or 100 and add 1K or 100 so no data gets cutoff
         if (max(caseLoad2020()$countTotal > 1000)){
             ggplotFilings20202021 <- ggplotFilings20202021 +
                 # scale_y_continuous(labels = scales::unit_format(unit = "K", scale = 10e-4)) 
@@ -349,23 +341,11 @@ server <- function(input, output) {
             ungroup()
         
         options(scipen = 10000)  
-        
-        #2019 vs 2020 (no 2021)
-        # ggplot(accumDF2,aes(x=lubridate::month(date, label = TRUE, abbr = TRUE), y=accumFilings, color = as.factor(Year), group = as.factor(Year))) +
-        #     geom_line() + geom_point() + geom_hline(yintercept = 0, linetype = 'dashed') +
-        #     #scale_x_date(date_breaks = '1 month', date_labels = '%B', expand = c(0,0)) +
-        #     scale_y_continuous(labels = scales::unit_format(unit = "K", scale = 10e-4)) +
-        #     scale_color_discrete() +
-        #     labs(x = '', y='', color = "Year") +
-        #     theme_bw() +
-        #     theme_ac1 +
-        #     ggtitle("How does the accumulation of active pending cases in 2020 compare to 2019?")
-        
+
         ggplotAccumPending <- ggplot(accumDF2,aes(x=lubridate::month(date, label = TRUE, abbr = TRUE), y=accumFilings, color = as.factor(Year), 
                                                   group = as.factor(Year), text = paste0('At the end of ',Month,' ',Year,',',format(accumFilings, big.mark = ','),' more cases were pending than on January 1, ',Year,'. \n',
                                                                                          'During the month of ',Month,',',format(Filings-Dispositions, big.mark = ','),' cases were added to the active pending caseload.'))) +
             geom_line() + geom_point() + geom_hline(yintercept = 0, linetype = 'dashed') +
-            #scale_x_date(date_breaks = '1 month', date_labels = '%B', expand = c(0,0)) +
             scale_y_continuous(labels = scales::unit_format(unit = "K", scale = 10e-4)) +
             scale_color_manual(breaks = c(2019,2020,2021), values = c('gray40','blue','goldenrod1')) +
             labs(x = '', y='', color = "Year") +
