@@ -1,7 +1,8 @@
 #-----------------------------------#
 #pandemicCaseLoadsTemplate Dashboard----
 #created on 2021/04/30 by Adam S. Cohen (Hawaii State Judiciary)
-#Last modified on 2021/05/25 by Adam S. Cohen (Hawaii State Judiciary)
+#based on the pandemic caseload dashboard created by Sarah Gibson (NCSC)
+#Last modified on 2021/06/03 by Adam S. Cohen (Hawaii State Judiciary)
 #-----------------------------------#
 
 #-----------------------------------#
@@ -74,7 +75,7 @@ ui <- dashboardPage(
     dashboardSidebar(sidebarMenu(
         menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard")),
         menuItem("About the data", tabName = "about", icon = icon("info")),
-        menuItem("_Github", href = "https://github.com/adamcohen3/pandemicCaseloadTemplate", icon = icon("github"))
+        menuItem("_Github", href = "https://github.com/adamcohen3/pandemicCaseloadsTemplate", icon = icon("github"))
         )
         ),
     dashboardBody(
@@ -133,6 +134,10 @@ ui <- dashboardPage(
                     br(),
 
 
+                    h3('Acknowledgements'),
+                    p('Many thanks to ', strong('Sarah Gibson'), '(National Center for State Courts) for building a 
+                    pandemic caseload dashboard that served as an inspiration and template for this one.'),
+                    
                     h3('About the dashboard'),
                     p("The dashboard is best viewed on a desktop. Formatting may be off on mobile devices and smaller 
                     desktops. Please send questions, comments, and feedback to ",a("Adam Cohen.", 
@@ -208,7 +213,7 @@ server <- function(input, output) {
                                                                        Month,' | ', 'Dispositions: ', countTotal[action == 'Dispositions'], '\n',
                                                                        'Difference between Filings and Dispositions: ', countTotal[action=='Filings'] - countTotal[action=='Dispositions']))) +
             geom_bar(stat="identity",position = "identity", alpha=.6) +
-            scale_fill_manual("",labels =  c("Dispositions","Filings"), values = c("tomato3","blue")) +
+            scale_fill_manual("",labels =  c("Dispositions","Filings"), values = c("tomato3","dodgerblue")) +
             #option #1 - set aes(x = monthNumRev...)
             scale_x_discrete(labels = rev(c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"))) +
             #option #2 - set aes(x = monthNum...)
@@ -252,7 +257,7 @@ server <- function(input, output) {
                                                                     Month,' | ', '2019 Filings: ', Filings[Year == 2019], '\n',
                                                                     'Change 2019 to 2020: ', Filings[Year == 2020] - Filings[Year == 2019]))) +
             geom_col(alpha = .6, position = "identity") +
-            scale_fill_manual("Year",labels =  c("2019","2020"), breaks = c(2019,2020), values = c("gray40","blue")) +
+            scale_fill_manual("Year",labels =  c("2019","2020"), breaks = c(2019,2020), values = c("black","dodgerblue")) +
             scale_x_discrete(labels = rev(c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"))) +
             labs(x = '', y='') +
             coord_flip() +
@@ -302,7 +307,7 @@ server <- function(input, output) {
                                                                     Month,' | ', '2020 Filings: ', Filings[Year == 2020], '\n',
                                                                     'Change 2020 to 2021: ', Filings[Year == 2021] - Filings[Year == 2020]))) +
             geom_col(alpha = .6, position = "identity") +
-            scale_fill_manual("Year",labels =  c("2020","2021"), breaks = c(2020,2021), values = c("blue",'goldenrod1')) +
+            scale_fill_manual("Year",labels =  c("2020","2021"), breaks = c(2020,2021), values = c("dodgerblue",'goldenrod1')) +
             scale_x_discrete(labels = rev(c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"))) +
             labs(x = '', y='') +
             coord_flip() +
@@ -348,8 +353,8 @@ server <- function(input, output) {
                                                   group = as.factor(Year), text = paste0('At the end of ',Month,' ',Year,',',format(accumFilings, big.mark = ','),' more cases were pending than on January 1, ',Year,'. \n',
                                                                                          'During the month of ',Month,',',format(Filings-Dispositions, big.mark = ','),' cases were added to the active pending caseload.'))) +
             geom_line() + geom_point() + geom_hline(yintercept = 0, linetype = 'dashed') +
-            scale_y_continuous(labels = scales::unit_format(unit = "K", scale = 10e-4)) +
-            scale_color_manual(breaks = c(2019,2020,2021), values = c('gray40','blue','goldenrod1')) +
+            # scale_y_continuous(labels = scales::unit_format(unit = "K", scale = 10e-4)) +
+            scale_color_manual(breaks = c(2019,2020,2021), values = c('black','dodgerblue','goldenrod1')) +
             labs(x = '', y='', color = "Year") +
             theme_bw() +
             ggtitle("How does the accumulation of active pending cases in 2020 compare to 2019 and 2021?")
