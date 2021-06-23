@@ -22,8 +22,8 @@ library(shinydashboard)
 #-----------------------------------#
 #read in files----
 #-----------------------------------#
-#df <- read.csv('H:\\JIMS_SQL\\JIMS_requests\\2021-02-04_NCSC_flash_data_request_03\\pandemicCaseloadsTemplate\\toyCaseloadData_v2.csv')
-df <- read.csv('toyCaseloadData_v2.csv')
+df <- read.csv('H:\\p12_caseload_dashboard\\pandemicCaseloadsTemplate\\toyCaseloadData_v3.csv')
+#df <- read.csv('toyCaseloadData_v3.csv')
 
 #-----------------------------------#
 #themes----
@@ -66,7 +66,7 @@ dfAll$Case.Category <- as.factor(dfAll$Case.Category)
 dfCombo <- bind_rows(df,dfAll)
 
 #-----------------------------------#
-# SHINY----
+# Define UI----
 #-----------------------------------#
 
 ui <- dashboardPage(
@@ -114,7 +114,10 @@ ui <- dashboardPage(
                              # column(width = 4, plotlyOutput("filings2020to2021Plot"))
                     ),
                     br(),
-                    fluidRow(box(title = "", width = 12, status = "primary", plotlyOutput("accumPendingPlot"))
+
+                    fluidRow(box(title = actionButton('button','Click to see changes in active pending and "shadow" cases for 2020'),
+                                 width = 12, status = "primary", 
+                                 plotlyOutput("accumPendingPlot"))
                     )
             ),
             tabItem(tabName = "about",
@@ -135,7 +138,9 @@ ui <- dashboardPage(
 
 
                     h3('Acknowledgements'),
-                    p('Many thanks to ', strong('Sarah Gibson'), '(National Center for State Courts) for building a 
+                    p('Many thanks to ', strong('Barbara Bettes'), '(Research and Statistics Office, Hawaii State
+                    Judiciary) for answering (many) questions and providing feedback.',br(),
+                      'Credit also goes to ', strong('Sarah Gibson'), '(National Center for State Courts) for building a 
                     pandemic caseload dashboard that served as an inspiration and template for this one.'),
                     
                     h3('About the dashboard'),
@@ -150,8 +155,11 @@ ui <- dashboardPage(
 
 
 # Define server logic----
-server <- function(input, output) {
+server <- function(input, output, session) {
 
+    #-----------------------------------#
+    #render value boxes----
+    #-----------------------------------#
     output$overAllText <- renderValueBox({ 
         valueBox(format(paste0(input$caseCategory),big.mark = ','), '2020 Cases', icon = icon("folder"), color = "blue")
     })
@@ -175,15 +183,19 @@ server <- function(input, output) {
         
     })
     
+    #-----------------------------------#
+    #rev legend labels
     #props: https://stackoverflow.com/questions/59611914/reverse-the-legend-order-when-using-ggplotly
+    #-----------------------------------#
     reverse_legend_labels <- function(plotly_plot) {
         n_labels <- length(plotly_plot$x$data)
         plotly_plot$x$data[1:n_labels] <- plotly_plot$x$data[n_labels:1]
         plotly_plot
     }
     
+    #-----------------------------------#
     #caseLoads2020Plot----
-    
+    #-----------------------------------#
     caseLoad2020 <- reactive({
         caseLoad2020.tmp <- dfCombo %>%
             #note that pivot_longer created an error in the text hover when trying to display the countTotals...could not determine the source of the error, maybe a bug?
@@ -205,6 +217,25 @@ server <- function(input, output) {
         caseLoad2020 <- rbind(caseLoad2020Filings,caseLoad2020Dispositions)
     })
     
+    #set matching axis limits for caseLoads2020Plot, filings2019to2020Plot, and filings2020to2021Plot
+    axisSettings <- reactive({
+        maxLimit <- dfCombo %>%
+            filter(Case.Category == input$caseCategory) %>%
+            summarize(maxFilings = max(Filings), maxDispositions = max(Dispositions))
+        maxLimit2 <- max(maxLimit)
+        
+        #set scale_y_continuous scaling unit based on max value of caseLoad countTotal
+        #set scale_y_continuous so limits for caseLoads[YEAR]Plot and Filings[YEAR]Plots match, round to nearest 1K or 100 and add 1K or 100 so no data gets cutoff
+        if (maxLimit2 > 1000){
+            gglabels <- scales::unit_format(unit = "K", scale = 10e-4)
+            gglimits <- c(0,round(maxLimit2+1000,-3))
+        } 
+        else if (maxLimit2 < 1000) {
+            gglabels = waiver()
+            gglimits = c(0,round(maxLimit2+100,-2))
+        }
+        return(list(gglabels=gglabels, gglimits=gglimits))
+    })
     
     output$caseLoads2020Plot <- renderPlotly({
         ggplotCaseloads2020 <- ggplot(caseLoad2020(),aes(x=monthNumRev, y=countTotal, fill = as.factor(action), 
@@ -218,22 +249,13 @@ server <- function(input, output) {
             scale_x_discrete(labels = rev(c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"))) +
             #option #2 - set aes(x = monthNum...)
             #scale_x_reverse(breaks = 1:12, labels = c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")) +
+            scale_y_continuous(labels = axisSettings()$gglabels, limits = axisSettings()$gglimits) +
             labs(x = '', y='') +
             coord_flip() +
             theme_bw() +
             theme_plotly +
             ggtitle("How are [STATE] courts managing 2020 caseloads?")
-        
-        #set scale_y_continuous scaling unit based on max value of caseLoad countTotal
-        #set scale_y_continuous so limits for caseLoads[YEAR]Plot and Filings[YEAR]Plots match, round to nearest 1K or 100 and add 1K or 100 so no data gets cutoff
-        if (max(caseLoad2020()$countTotal > 1000)){
-            ggplotCaseloads2020 <- ggplotCaseloads2020 +
-                scale_y_continuous(labels = scales::unit_format(unit = "K", scale = 10e-4), limits = c(0,round(max(caseLoad2020()$countTotal+1000),-3))) 
-        } else if (max(caseLoad2020()$countTotal < 1000)) {
-            ggplotCaseloads2020 <- ggplotCaseloads2020 +
-                scale_y_continuous(limits = c(0,round(max(caseLoad2020()$countTotal+100),-2))) 
-        }
-        
+
         ggplotly(ggplotCaseloads2020,
                  tooltip = c('text')
         ) %>%
@@ -242,8 +264,9 @@ server <- function(input, output) {
         
         
     })
-    
+    #-----------------------------------#
     #filings2019to2020Plot----
+    #-----------------------------------#
     output$filings2019to2020Plot <- renderPlotly({
         
         filingsDF <- dfCombo %>%
@@ -259,22 +282,12 @@ server <- function(input, output) {
             geom_col(alpha = .6, position = "identity") +
             scale_fill_manual("Year",labels =  c("2019","2020"), breaks = c(2019,2020), values = c("black","dodgerblue")) +
             scale_x_discrete(labels = rev(c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"))) +
+            scale_y_continuous(labels = axisSettings()$gglabels, limits = axisSettings()$gglimits) +
             labs(x = '', y='') +
             coord_flip() +
             theme_plotly +
             ggtitle("How do 2020 filings compare to filings in 2019?")
-        
-        #set scale_y_continuous scaling unit based on max value of caseLoad countTotal
-        #set scale_y_continuous so limits for caseLoads[YEAR]Plot and Filings[YEAR]Plots match, round to nearest 1K or 100 and add 1K or 100 so no data gets cutoff
-        if (max(caseLoad2020()$countTotal > 1000)){
-            ggplotFilings20192020 <- ggplotFilings20192020 +
-                scale_y_continuous(labels = scales::unit_format(unit = "K", scale = 10e-4), limits = c(0,round(max(caseLoad2020()$countTotal+1000),-3))) 
-        } else if (max(caseLoad2020()$countTotal < 1000)) {
-            ggplotFilings20192020 <- ggplotFilings20192020 +
-                scale_y_continuous(limits = c(0,round(max(caseLoad2020()$countTotal+100),-2))) 
-        }
-        
-        
+
         ggplotly(ggplotFilings20192020,
                  tooltip = c('text')
         ) %>%
@@ -282,7 +295,9 @@ server <- function(input, output) {
         
     })
     
+    #-----------------------------------#
     #filings2020to2021Plot----
+    #-----------------------------------#
     output$filings2020to2021Plot <- renderPlotly({
         
         filingsDF <- dfCombo %>%
@@ -309,21 +324,11 @@ server <- function(input, output) {
             geom_col(alpha = .6, position = "identity") +
             scale_fill_manual("Year",labels =  c("2020","2021"), breaks = c(2020,2021), values = c("dodgerblue",'goldenrod1')) +
             scale_x_discrete(labels = rev(c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"))) +
+            scale_y_continuous(labels = axisSettings()$gglabels, limits = axisSettings()$gglimits) +
             labs(x = '', y='') +
             coord_flip() +
             theme_plotly +
             ggtitle("How do 2020 filings compare to filings in 2021")
-        
-        #set scale_y_continuous scaling unit based on max value of caseLoad countTotal
-        #set scale_y_continuous so limits for caseLoads[YEAR]Plot and Filings[YEAR]Plots match, round to nearest 1K or 100 and add 1K or 100 so no data gets cutoff
-        if (max(caseLoad2020()$countTotal > 1000)){
-            ggplotFilings20202021 <- ggplotFilings20202021 +
-                # scale_y_continuous(labels = scales::unit_format(unit = "K", scale = 10e-4)) 
-                scale_y_continuous(labels = scales::unit_format(unit = "K", scale = 10e-4), limits = c(0,round(max(caseLoad2020()$countTotal+1000),-3))) 
-        } else if (max(caseLoad2020()$countTotal < 1000)) {
-            ggplotFilings20202021 <- ggplotFilings20202021 +
-                scale_y_continuous(limits = c(0,round(max(caseLoad2020()$countTotal+100),-2))) 
-        }
         
         ggplotly(ggplotFilings20202021,
                  tooltip = c('text')
@@ -331,8 +336,25 @@ server <- function(input, output) {
             reverse_legend_labels()
     })
     
-    
+    #-----------------------------------#
     #accumPendingPlot----
+    #-----------------------------------#
+    #counter for shadow cases button and dataset
+    vars = reactiveValues(counter = 0)
+    
+    #update action button label and increment counter on click
+    observeEvent(input$button, {
+        if(vars$counter %% 2 == 1){
+            vars$counter <- vars$counter + 1
+            updateActionButton(inputId = 'button',paste0('Click to see changes in active pending and "shadow" cases for 2020'), session = session)
+        }
+        else{
+            vars$counter <- vars$counter + 1
+            updateActionButton(inputId = 'button',paste0('Click to compare accumulated pending cases in 2020 to 2019 and 2021'), session = session)
+        }
+    })
+    
+    
     output$accumPendingPlot <- renderPlotly({
         
         accumDF1 <- dfCombo %>%
@@ -346,6 +368,45 @@ server <- function(input, output) {
             group_by(Year) %>%
             mutate(accumFilings = cumsum(Filings-Dispositions)) %>%
             ungroup()
+        
+        #compute shadow cases by comparing 2020 to 2019 filings
+        filings2019 <- accumDF2 %>%
+            filter(Year == 2019) %>%
+            select('month2019' = Month, 'filings2019' = Filings)
+        filings2020 <- accumDF2 %>%
+            filter(Year == 2020) %>%
+            rename('month2020' = Month, 'filings2020' = Filings)
+        
+        filings2020Tmp <- filings2020 %>%
+            bind_cols(filings2019) %>%
+            mutate(accumShadow = cumsum(filings2019-filings2020),
+                   Year = '2020+shadow') %>%
+            select(-month2019,-filings2019) %>%
+            rename(Month = month2020, Filings = filings2020)
+        
+        filings2020Shadow <- filings2020Tmp %>%
+            mutate(filingType = 'shadow') %>%
+            select(filingType, date, Month, filings = accumShadow) 
+        
+        filings2020Active <- filings2020Tmp %>%
+            mutate(filingType = 'active') %>%
+            select(filingType, date, Month, filings = accumFilings)
+        
+        filings2020Total <- filings2020Tmp %>%
+            mutate(filingType = 'total', filings = accumFilings+accumShadow) %>%
+            select(filingType, date, Month, filings) %>%
+            bind_rows(filings2020Active,filings2020Shadow)
+        
+        # #wrangle back into main df to compare 2019, 2020, 2020+shadow, 2021
+        # accumDF3 <- accumDF2 %>%
+        #     mutate(shadow = 0,
+        #            Year = as.character(Year)) %>%
+        #     bind_rows(filings2020Shadow) %>%
+        #     # left_join(shadow2020, by=(c('Year', 'Month' = 'month2020'))) %>%
+        #     rowwise() %>%
+        #     mutate(accumFilingsPlusShadow = sum(accumFilings,shadow,na.rm = TRUE))
+        
+        
         
         options(scipen = 10000)  
 
@@ -365,8 +426,38 @@ server <- function(input, output) {
                 scale_y_continuous(labels = scales::unit_format(unit = "K", scale = 10e-4))
         }
         
-        ggplotly(ggplotAccumPending,
-                 tooltip = c('text'))
+        #generate plot with shadow cases on click
+        if(vars$counter %% 2 == 1){
+            ggplotAccumPending2 <- ggplot(filings2020Total,aes(x=lubridate::month(date, label = TRUE, abbr = TRUE), y=filings, color = as.factor(filingType), 
+                                                      group = as.factor(filingType), text = paste0(filingType,' ',Month,': ',format(filings, big.mark = ',')))) +
+                geom_line() + geom_point() + geom_hline(yintercept = 0, linetype = 'dashed') +
+                #scale_x_date(date_breaks = '1 month', date_labels = '%B', expand = c(0,0)) +
+                # scale_y_continuous(labels = scales::unit_format(unit = "K", scale = 10e-4)) +
+                # scale_color_manual(breaks = c('total','shadow','active'), values = c('black','dodgerblue','goldenrod1')) +
+                labs(x = '', y='', color = " ") +
+                theme_bw() +
+                ggtitle("How did active pending and \"shadow\" cases change in 2020?")
+            
+            #set scale_y_continuous scaling unit based on max/min values of filings2020Total filings
+            if (max(filings2020Total$filings > 1000) | min(filings2020Total$filings < -1000)){
+                ggplotAccumPending2 <- ggplotAccumPending2 +
+                    scale_y_continuous(labels = scales::unit_format(unit = "K", scale = 10e-4)) 
+            }# else if (max(accumDF3$accumFilingsPlusShadow < 1000)) {
+            #   ggplotAccumPending <- ggplotAccumPending +
+            #     scale_y_continuous(limits = c(NA,round(max(accumDF3$accumFilingsPlusShadow+100),-2))) 
+            # }   
+            
+            ggplotly(ggplotAccumPending2,
+                     tooltip = c('text')) %>%
+                layout(hovermode = 'x unified') %>% 
+                # style(text = paste0('test'), 
+                #       traces = 1) %>%
+                reverse_legend_labels()
+        }
+        else{
+            ggplotly(ggplotAccumPending,
+                     tooltip = c('text'))
+        }
         
     })
 }
