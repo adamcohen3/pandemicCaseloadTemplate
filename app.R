@@ -2,7 +2,7 @@
 #pandemicCaseLoadsTemplate Dashboard----
 #created on 2021/04/30 by Adam S. Cohen (Hawaii State Judiciary)
 #based on the pandemic caseload dashboard created by Sarah Gibson (NCSC)
-#Last modified on 2021/06/03 by Adam S. Cohen (Hawaii State Judiciary)
+#Last modified on 2021/06/22 by Adam S. Cohen (Hawaii State Judiciary)
 #-----------------------------------#
 
 #-----------------------------------#
