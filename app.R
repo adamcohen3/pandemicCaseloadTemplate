@@ -22,8 +22,8 @@ library(shinydashboard)
 #-----------------------------------#
 #read in files----
 #-----------------------------------#
-df <- read.csv('H:\\p12_caseload_dashboard\\pandemicCaseloadsTemplate\\toyCaseloadData_v3.csv')
-#df <- read.csv('toyCaseloadData_v3.csv')
+#df <- read.csv('H:\\p12_caseload_dashboard\\pandemicCaseloadsTemplate\\toyCaseloadData_v3.csv')
+df <- read.csv('toyCaseloadData_v3.csv')
 
 #-----------------------------------#
 #themes----
@@ -145,7 +145,7 @@ ui <- dashboardPage(
                     
                     h3('About the dashboard'),
                     p("The dashboard is best viewed on a desktop. Formatting may be off on mobile devices and smaller 
-                    desktops. Please send questions, comments, and feedback to ",a("Adam Cohen.", 
+                    desktops. Please send questions and comments to ",a("Adam Cohen.", 
                                                                                    href = 'mailto:adam.s.cohen@courts.hawaii.gov')),
                     br(),br(),br()
             )
